@@ -4,6 +4,7 @@ If you don't need the web GUI of NPMplus, you may also have a look at caddy: htt
 
 - [Compatibility (to Upstream)](#compatibility-to-upstream)
 - [Quick Setup](#quick-setup)
+- [Container Images (GHCR)](#container-images-ghcr)
 - [Migration from upstream/vanilla nginx-proxy-manager](#migration-from-upstreamvanilla-nginx-proxy-manager)
 
 **Note: this fork is distributed under the GNU Affero General Public License version 3. It is based on the MIT licensed [nginx-proxy-manager](https://github.com/NginxProxyManager/nginx-proxy-manager).** <br>
@@ -60,6 +61,23 @@ If you don't need the web GUI of NPMplus, you may also have a look at caddy: htt
 docker compose up -d
 ```
 5. Log in to the Admin UI: When your docker container is running, connect to the admin interface using `https://` on port `81`.
+
+## Container Images (GHCR)
+The workflows in this repository push images directly to GitHub Container Registry:
+- `ghcr.io/swissmakers/npmng:develop`
+- `ghcr.io/swissmakers/npmng:latest`
+- `ghcr.io/swissmakers/npmng:beta`
+- `ghcr.io/swissmakers/npmng:caddy`
+
+Pull examples:
+```bash
+podman pull ghcr.io/swissmakers/npmng:develop
+podman pull ghcr.io/swissmakers/npmng:latest
+```
+```bash
+docker pull ghcr.io/swissmakers/npmng:develop
+docker pull ghcr.io/swissmakers/npmng:latest
+```
 
 ## Migration from upstream/vanilla nginx-proxy-manager
 - **NOTE: Migrating back to the original version is not possible.** Please make a **backup** before migrating, so you have the option to revert if needed
