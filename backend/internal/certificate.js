@@ -85,9 +85,15 @@ const internalCertificate = {
 			if (certificates && certificates.length > 0) {
 				const updatePromises = certificates.map(async (certificate) => {
 					try {
-						const certInfo = await internalCertificate.getCertificateInfoFromFile(
-							`${internalCertificate.getLiveCertPath(certificate.id)}/fullchain.pem`,
-						);
+						const fullchainPath = `${internalCertificate.getLiveCertPath(certificate.id)}/fullchain.pem`;
+						if (!fs.existsSync(fullchainPath)) {
+							logger.warn(
+								`Skipping metadata refresh for cert #${certificate.id}: certificate file not found (${fullchainPath})`,
+							);
+							return;
+						}
+
+						const certInfo = await internalCertificate.getCertificateInfoFromFile(fullchainPath);
 
 						await certificateModel
 							.query()
