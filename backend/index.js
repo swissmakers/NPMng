@@ -22,16 +22,15 @@ async function appStart() {
 			internalIpRanges.initTimer();
 			return internalIpRanges.fetch();
 		})
-		.then(async () => {
+		.then(() => {
 			internalCertificate.initTimer();
-			try {
-				await internalNginx.reload();
-			} catch (err) {
-				logger.error(`Initial nginx reload failed: ${err.message}`, err);
-			}
 
 			const server = app.listen("/run/npmplus.sock", () => {
 				logger.info(`Backend PID ${process.pid} listening on unix socket...`);
+				// Reload after backend socket exists to avoid startup proxy races.
+				internalNginx.reload().catch((err) => {
+					logger.error(`Initial nginx reload failed: ${err.message}`, err);
+				});
 
 				process.on("SIGTERM", () => {
 					logger.info(`PID ${process.pid} received SIGTERM`);
