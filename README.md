@@ -65,18 +65,11 @@ docker compose up -d
 ## Container Images (GHCR)
 The workflows in this repository push images directly to GitHub Container Registry:
 - `ghcr.io/swissmakers/npmng:develop`
-- `ghcr.io/swissmakers/npmng:latest`
-- `ghcr.io/swissmakers/npmng:beta`
-- `ghcr.io/swissmakers/npmng:caddy`
 
 Pull examples:
 ```bash
 podman pull ghcr.io/swissmakers/npmng:develop
-podman pull ghcr.io/swissmakers/npmng:latest
-```
-```bash
 docker pull ghcr.io/swissmakers/npmng:develop
-docker pull ghcr.io/swissmakers/npmng:latest
 ```
 
 ## Migration from upstream/vanilla nginx-proxy-manager
