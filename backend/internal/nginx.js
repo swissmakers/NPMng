@@ -8,6 +8,8 @@ import { debug, nginx as logger } from "../logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+let reloadInProgress = false;
+let reloadQueued = false;
 
 const internalNginx = {
 	/**
@@ -24,7 +26,8 @@ const internalNginx = {
 	 * @param   {Object}         host
 	 * @returns {Promise}
 	 */
-	configure: async (model, host_type, host) => {
+	configure: async (model, host_type, host, options = {}) => {
+		const { skipReload = false } = options;
 		let combined_meta = {};
 
 		await internalNginx.deleteConfig(host_type, host);
@@ -56,7 +59,9 @@ const internalNginx = {
 			await internalNginx.renameConfigAsError(host_type, host);
 		}
 
-		await internalNginx.reload();
+		if (!skipReload) {
+			await internalNginx.reload();
+		}
 		return combined_meta;
 	},
 
@@ -71,34 +76,48 @@ const internalNginx = {
 	 * @returns {Promise}
 	 */
 	reload: async () => {
-		if (process.env.ACME_OCSP_STAPLING === "true") {
-			try {
-				await utils.execFile("certbot-ocsp-fetcher.sh", [
-					"-c",
-					"/data/tls/certbot/live",
-					"-o",
-					"/data/tls/certbot/live",
-					"--no-reload-webserver",
-					"--quiet",
-				]);
-			} catch {}
+		if (reloadInProgress) {
+			reloadQueued = true;
+			return;
 		}
 
-		if (process.env.CUSTOM_OCSP_STAPLING === "true") {
-			try {
-				await utils.execFile("certbot-ocsp-fetcher.sh", [
-					"-c",
-					"/data/tls/custom",
-					"-o",
-					"/data/tls/custom",
-					"--no-reload-webserver",
-					"--quiet",
-				]);
-			} catch {}
-		}
+		reloadInProgress = true;
+		try {
+			do {
+				reloadQueued = false;
 
-		await internalNginx.test();
-		return utils.execFile("nginx", ["-s", "reload"]);
+				if (process.env.ACME_OCSP_STAPLING === "true") {
+					try {
+						await utils.execFile("certbot-ocsp-fetcher.sh", [
+							"-c",
+							"/data/tls/certbot/live",
+							"-o",
+							"/data/tls/certbot/live",
+							"--no-reload-webserver",
+							"--quiet",
+						]);
+					} catch {}
+				}
+
+				if (process.env.CUSTOM_OCSP_STAPLING === "true") {
+					try {
+						await utils.execFile("certbot-ocsp-fetcher.sh", [
+							"-c",
+							"/data/tls/custom",
+							"-o",
+							"/data/tls/custom",
+							"--no-reload-webserver",
+							"--quiet",
+						]);
+					} catch {}
+				}
+
+				await internalNginx.test();
+				await utils.execFile("nginx", ["-s", "reload"]);
+			} while (reloadQueued);
+		} finally {
+			reloadInProgress = false;
+		}
 	},
 
 	/**
@@ -310,8 +329,12 @@ const internalNginx = {
 		const results = [];
 
 		for (const host of hosts) {
-			const result = await internalNginx.configure(model, hostType, host);
+			const result = await internalNginx.configure(model, hostType, host, { skipReload: true });
 			results.push(result);
+		}
+
+		if (hosts.length > 0) {
+			await internalNginx.reload();
 		}
 
 		return results;

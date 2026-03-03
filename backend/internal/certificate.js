@@ -46,15 +46,19 @@ const internalCertificate = {
 
 		internalCertificate.intervalProcessing = true;
 		logger.info("Renewing Certbot TLS certs close to expiry...");
+		const renewMarker = "/tmp/certbot-renewed.marker";
 
 		try {
 			try {
+				await rm(renewMarker, { force: true });
 				const result = await utils.execFile("certbot", [
 					"--config",
 					"/etc/certbot.ini",
 					"renew",
 					"--server",
 					process.env.ACME_SERVER,
+					"--deploy-hook",
+					`sh -c 'touch ${renewMarker}'`,
 					"--quiet",
 				]);
 
@@ -64,7 +68,11 @@ const internalCertificate = {
 			}
 
 			try {
-				await internalNginx.reload();
+				if (fs.existsSync(renewMarker)) {
+					await internalNginx.reload();
+				} else {
+					logger.info("No certificates were renewed, skipping nginx reload");
+				}
 			} catch (err) {
 				logger.error(err);
 			}
@@ -100,6 +108,7 @@ const internalCertificate = {
 		} catch (err) {
 			logger.error(err);
 		} finally {
+			await rm("/tmp/certbot-renewed.marker", { force: true });
 			internalCertificate.intervalProcessing = false;
 		}
 	},

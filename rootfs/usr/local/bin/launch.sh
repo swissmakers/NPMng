@@ -84,5 +84,13 @@ if [ "$GOA" = "true" ]; then set -f; while true; do if [ -s /data/nginx/logs/acc
                     --date-format="%d/%b/%Y" --log-format='[%d:%t %^] %v %h %T "%r" %s %b %b %R %u' --unix-socket=/run/goaccess.sock --log-file=/data/nginx/logs/access.log \
                     --real-time-html --output=/tmp/goa/index.html --db-path=/data/goaccess/data --restore --persist \
                     --browsers-file=/etc/goaccess/browsers.list --browsers-file=/etc/goaccess/podcast.list $GOACLA; else sleep 10s; fi; done; fi &
-while true; do nginx -e stderr; done &
-while true; do index.js; done
+while true; do
+    nginx -e stderr
+    echo "nginx exited, restarting in 2s..."
+    sleep 2
+done &
+while true; do
+    index.js
+    echo "backend exited, restarting in 2s..."
+    sleep 2
+done

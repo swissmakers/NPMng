@@ -22,9 +22,13 @@ async function appStart() {
 			internalIpRanges.initTimer();
 			return internalIpRanges.fetch();
 		})
-		.then(() => {
+		.then(async () => {
 			internalCertificate.initTimer();
-			internalNginx.reload();
+			try {
+				await internalNginx.reload();
+			} catch (err) {
+				logger.error(`Initial nginx reload failed: ${err.message}`, err);
+			}
 
 			const server = app.listen("/run/npmplus.sock", () => {
 				logger.info(`Backend PID ${process.pid} listening on unix socket...`);
