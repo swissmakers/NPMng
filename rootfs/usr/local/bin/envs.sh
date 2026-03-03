@@ -30,8 +30,36 @@ fi
 
 
 touch /data/.env
-# shellcheck source=/dev/null
-. /data/.env
+
+load_env_file() {
+    while IFS= read -r line || [ -n "$line" ]; do
+        case "$line" in
+            ''|'#'*) continue ;;
+        esac
+
+        key="${line%%=*}"
+        value="${line#*=}"
+        if [ "$key" = "$line" ]; then
+            continue
+        fi
+
+        key="$(printf '%s' "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+        value="$(printf '%s' "$value" | sed 's/^[[:space:]]*//')"
+
+        case "$key" in
+            *[!A-Za-z0-9_]*|'') continue ;;
+        esac
+
+        case "$value" in
+            \"*\") value="${value#\"}"; value="${value%\"}" ;;
+            \'*\') value="${value#\'}"; value="${value%\'}" ;;
+        esac
+
+        export "$key=$value"
+    done < /data/.env
+}
+
+load_env_file
 if [ -s /tmp/env.sha512sum ] && [ "$(cat /tmp/env.sha512sum)" != "$(sha512sum < /data/.env)" ]; then
     echo "You need to recreate the NPMplus container after changing the .env file, restarting the container after changing the .env file is not supported"
     sleep inf

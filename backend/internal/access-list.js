@@ -11,6 +11,11 @@ import proxyHostModel from "../models/proxy_host.js";
 import internalAuditLog from "./audit-log.js";
 import internalNginx from "./nginx.js";
 
+const accessListBcryptRounds = (() => {
+	const parsed = Number.parseInt(process.env.ACCESS_LIST_BCRYPT_ROUNDS || "12", 10);
+	return Number.isNaN(parsed) || parsed < 10 ? 12 : parsed;
+})();
+
 const omissions = () => {
 	return ["is_deleted"];
 };
@@ -42,7 +47,7 @@ const internalAccessList = {
 				accessListAuthModel.query().insert({
 					access_list_id: row.id,
 					username: item.username,
-					password: bcrypt.hashSync(item.password, 6),
+					password: bcrypt.hashSync(item.password, accessListBcryptRounds),
 				}),
 			);
 			return true;
@@ -129,7 +134,7 @@ const internalAccessList = {
 						accessListAuthModel.query().insert({
 							access_list_id: data.id,
 							username: item.username,
-							password: bcrypt.hashSync(item.password, 6),
+							password: bcrypt.hashSync(item.password, accessListBcryptRounds),
 						}),
 					);
 				} else {

@@ -10,6 +10,21 @@ const ERROR_MESSAGE_INVALID_AUTH = "Invalid email or password";
 const ERROR_MESSAGE_INVALID_AUTH_I18N = "error.invalid-auth";
 const ERROR_MESSAGE_INVALID_2FA = "Invalid verification code";
 const ERROR_MESSAGE_INVALID_2FA_I18N = "error.invalid-2fa";
+const MAX_TOKEN_EXPIRY = process.env.MAX_TOKEN_EXPIRY || "7d";
+
+const getValidatedExpiry = (expression) => {
+	const expiry = parseDatePeriod(expression);
+	if (expiry === null) {
+		throw new errs.AuthError(`Invalid expiry time: ${expression}`);
+	}
+
+	const maxExpiry = parseDatePeriod(MAX_TOKEN_EXPIRY);
+	if (maxExpiry !== null && expiry.isAfter(maxExpiry)) {
+		throw new errs.AuthError(`Requested expiry exceeds maximum allowed (${MAX_TOKEN_EXPIRY})`);
+	}
+
+	return expiry;
+};
 
 export default {
 	/**
@@ -75,10 +90,7 @@ export default {
 		}
 
 		// Create a dayjs of the expiry expression
-		const expiry = parseDatePeriod(data.expiry);
-		if (expiry === null) {
-			throw new errs.AuthError(`Invalid expiry time: ${data.expiry}`);
-		}
+		const expiry = getValidatedExpiry(data.expiry);
 
 		const signed = await Token.create({
 			iss: issuer || "api",
@@ -153,10 +165,7 @@ export default {
 
 		if (access?.token.getUserId(0)) {
 			// Create a dayjs of the expiry expression
-			const expiry = parseDatePeriod(thisData.expiry);
-			if (expiry === null) {
-				throw new errs.AuthError(`Invalid expiry time: ${thisData.expiry}`);
-			}
+			const expiry = getValidatedExpiry(thisData.expiry);
 
 			const token_attrs = {
 				id: access.token.getUserId(0),
@@ -223,10 +232,7 @@ export default {
 		}
 
 		// Create full token
-		const expiryDate = parseDatePeriod(tokenExpiry);
-		if (expiryDate === null) {
-			throw new errs.AuthError(`Invalid expiry time: ${tokenExpiry}`);
-		}
+		const expiryDate = getValidatedExpiry(tokenExpiry);
 
 		const signed = await Token.create({
 			iss: "api",
