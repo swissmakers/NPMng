@@ -4,14 +4,6 @@ export default () => {
 	return async (req, res, next) => {
 		const token = req.cookies?.token || null;
 
-		//if (!token) {
-		//	return res.status(401).json({
-		//		error: {
-		//			message: "Missing token",
-		//		},
-		//	});
-		//}
-
 		try {
 			res.locals.access = null;
 			const access = new Access(token);

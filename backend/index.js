@@ -47,9 +47,4 @@ async function appStart() {
 		});
 }
 
-try {
-	appStart();
-} catch (err) {
-	logger.fatal(err);
-	process.exit(1);
-}
+appStart();

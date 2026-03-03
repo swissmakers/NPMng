@@ -108,7 +108,6 @@ const setupCertbotPlugins = async () => {
 
 	if (certificates?.length) {
 		const plugins = [];
-		const promises = [];
 
 		for (const certificate of certificates) {
 			if (certificate.meta && certificate.meta.dns_challenge === true) {
@@ -125,9 +124,7 @@ const setupCertbotPlugins = async () => {
 		}
 
 		await installPlugins(plugins);
-
-		if (promises.length) {
-			await Promise.all(promises);
+		if (plugins.length) {
 			logger.info(`Added Certbot plugins ${plugins.join(", ")}`);
 		}
 	}

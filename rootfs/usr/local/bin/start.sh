@@ -214,16 +214,6 @@ if [ -d /data/tls/certbot/live ] && [ -d /data/tls/certbot/archive ]; then
     rm tmp
 fi
 
-# can be used to delete certificates which expired more than 16 weeks ago
-#for cert in $(find /data/tls/certbot/live/npm-* -type d | sed "s|/data/tls/certbot/live/||g"); do
-#    if ! openssl x509 -in "/data/tls/certbot/live/$cert/fullchain.pem" -checkend -9676800 >/dev/null; then
-#        rm -rvf "/data/tls/certbot/live/$cert"
-#        rm -rvf "/data/tls/certbot/live/$cert.der"
-#        rm -rvf "/data/tls/certbot/archive/$cert"
-#        rm -rvf "/data/tls/certbot/renewal/$cert.conf"
-#    fi
-#done
-
 rm -vrf /data/letsencrypt-acme-challenge \
         /data/nginx/default_host \
         /data/nginx/temp \
@@ -347,29 +337,20 @@ else
     rm -vrf /data/tls/dummycert.pem /data/tls/dummykey.pem
 fi
 
-sed -i "s|ssl_certificate .*|ssl_certificate $DEFAULT_CERT;|g" /app/templates/default.conf
-sed -i "s|ssl_certificate_key .*|ssl_certificate_key $DEFAULT_KEY;|g" /app/templates/default.conf
-if [ -s "$DEFAULT_STAPLING_FILE" ]; then
-    sed -i "s|#\?ssl_stapling|ssl_stapling|g" /app/templates/default.conf
-    sed -i "s|#\?ssl_stapling_file .*|ssl_stapling_file $DEFAULT_STAPLING_FILE;|g" /app/templates/default.conf
-    sed -i "s|#\?ssl_certificate_compression|ssl_certificate_compression|g" /app/templates/default.conf
-fi
+apply_tls_to_conf() {
+    conf_file="$1"
+    sed -i "s|ssl_certificate .*|ssl_certificate $DEFAULT_CERT;|g" "$conf_file"
+    sed -i "s|ssl_certificate_key .*|ssl_certificate_key $DEFAULT_KEY;|g" "$conf_file"
+    if [ -s "$DEFAULT_STAPLING_FILE" ]; then
+        sed -i "s|#\?ssl_stapling|ssl_stapling|g" "$conf_file"
+        sed -i "s|#\?ssl_stapling_file .*|ssl_stapling_file $DEFAULT_STAPLING_FILE;|g" "$conf_file"
+        sed -i "s|#\?ssl_certificate_compression|ssl_certificate_compression|g" "$conf_file"
+    fi
+}
 
-sed -i "s|ssl_certificate .*|ssl_certificate $DEFAULT_CERT;|g" /usr/local/nginx/conf/conf.d/npmplus.conf
-sed -i "s|ssl_certificate_key .*|ssl_certificate_key $DEFAULT_KEY;|g" /usr/local/nginx/conf/conf.d/npmplus.conf
-if [ -s "$DEFAULT_STAPLING_FILE" ]; then
-    sed -i "s|#\?ssl_stapling|ssl_stapling|g" /usr/local/nginx/conf/conf.d/npmplus.conf
-    sed -i "s|#\?ssl_stapling_file .*|ssl_stapling_file $DEFAULT_STAPLING_FILE;|g" /usr/local/nginx/conf/conf.d/npmplus.conf
-    sed -i "s|#\?ssl_certificate_compression|ssl_certificate_compression|g" /usr/local/nginx/conf/conf.d/npmplus.conf
-fi
-
-sed -i "s|ssl_certificate .*|ssl_certificate $DEFAULT_CERT;|g" /usr/local/nginx/conf/conf.d/goaccess.conf.disabled
-sed -i "s|ssl_certificate_key .*|ssl_certificate_key $DEFAULT_KEY;|g" /usr/local/nginx/conf/conf.d/goaccess.conf.disabled
-if [ -s "$DEFAULT_STAPLING_FILE" ]; then
-    sed -i "s|#\?ssl_stapling|ssl_stapling|g" /usr/local/nginx/conf/conf.d/goaccess.conf.disabled
-    sed -i "s|#\?ssl_stapling_file .*|ssl_stapling_file $DEFAULT_STAPLING_FILE;|g" /usr/local/nginx/conf/conf.d/goaccess.conf.disabled
-    sed -i "s|#\?ssl_certificate_compression|ssl_certificate_compression|g" /usr/local/nginx/conf/conf.d/goaccess.conf.disabled
-fi
+apply_tls_to_conf /app/templates/default.conf
+apply_tls_to_conf /usr/local/nginx/conf/conf.d/npmplus.conf
+apply_tls_to_conf /usr/local/nginx/conf/conf.d/goaccess.conf.disabled
 
 sed -i "s|#\?listen 0.0.0.0:81 |listen $NPM_IPV4_BINDING:$NPM_PORT |g" /usr/local/nginx/conf/conf.d/npmplus.conf
 sed -i "s|#\?listen 0.0.0.0:91 |listen $GOA_IPV4_BINDING:$GOA_PORT |g" /usr/local/nginx/conf/conf.d/goaccess.conf.disabled
@@ -477,8 +458,6 @@ if [ "$PUID" != "0" ]; then
     fi
     if [ -z "$(getent group npm | cut -d: -f3)" ]; then
         groupadd -f -g "$PGID" npm
-    else
-        groupmod -o -g "$PGID" npm
     fi
     groupmod -o -g "$PGID" npm
     if [ "$(getent group npm | cut -d: -f3)" != "$PGID" ]; then
