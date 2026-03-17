@@ -172,7 +172,7 @@ RUN apk upgrade --no-cache -a && \
 FROM alpine:3.23.3
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 ENV NODE_ENV=production
-ARG LRC_VER=v0.1.32R1
+ARG LRC_VER=v0.1.33RC1
 ARG LRL_VER=v0.15
 ARG LCSB_VER=v1.0.13
 
